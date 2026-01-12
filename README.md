@@ -12,7 +12,7 @@ You might use this to:
 
 - Help users find answers in your documentation
 - Give AI assistants access to your blog's content
-- Enable search across an internal knowledge base
+- Let AI tools cite your articles with accurate, up-to-date information
 
 ## How It Works
 
@@ -355,6 +355,39 @@ The search index follows the v3.0 schema:
 | `pages[].url` | Yes | Path starting with `/` |
 | `pages[].title` | Yes | Page title |
 | `pages[].body` | No | Full text (recommended) |
+
+---
+
+## Threat Model
+
+This MCP server is designed for **public content only**. Consider these security characteristics before deploying:
+
+### What's Exposed
+
+| Exposure | Mechanism |
+|----------|-----------|
+| All indexed content | `get_article` retrieves full text by URL path |
+| Content enumeration | `search_*` with broad queries reveals page titles and summaries |
+| Site metadata | `/` endpoint and `get_index_info` reveal page count, domain, and tool names |
+
+### Assumptions
+
+- **Your content is already public.** The indexed pages come from a public website. This server makes them AI-searchable, not newly public.
+- **R2 is not the security boundary.** While the R2 bucket is private, the Worker exposes its contents through MCP tools. Anyone with the endpoint URL can query all indexed content.
+- **No authentication.** The MCP server accepts connections from any client. There's no API key, OAuth, or access control.
+
+### Not Designed For
+
+- Private or internal documentation
+- Content requiring authentication or authorization
+- Partial access control (all-or-nothing visibility)
+
+### Recommendations
+
+If you need access control, consider:
+- Cloudflare Access for authentication at the Worker level
+- A separate private deployment for internal content
+- Excluding sensitive pages from the search index
 
 ---
 
