@@ -1,0 +1,37 @@
+{
+  "version": "3.0",
+  "generated": "2025-01-15T12:00:00.000Z",
+  "site": {
+    "name": "Example Blog",
+    "domain": "blog.example.com",
+    "description": "A blog about interesting topics",
+    "toolPrefix": "exampleblog"
+  },
+  "pageCount": 3,
+  "pages": [
+    {
+      "url": "/about",
+      "title": "About Us",
+      "abstract": "Learn about our team and mission.",
+      "date": "2025-01-01",
+      "topics": ["about", "team"],
+      "body": "Welcome to Example Blog!\n\nWe are a team of writers passionate about sharing knowledge. Our mission is to create helpful, informative content that makes complex topics accessible to everyone.\n\n## Our Team\n\nOur team consists of experienced writers and subject matter experts.\n\n## Contact\n\nReach us at hello@example.com"
+    },
+    {
+      "url": "/posts/getting-started",
+      "title": "Getting Started Guide",
+      "abstract": "A beginner's guide to using our platform.",
+      "date": "2025-01-10",
+      "topics": ["tutorial", "beginner", "guide"],
+      "body": "# Getting Started\n\nThis guide will walk you through the basics.\n\n## Step 1: Create an Account\n\nVisit our signup page and create your account.\n\n## Step 2: Configure Settings\n\nCustomize your preferences in the settings panel.\n\n## Step 3: Start Creating\n\nYou're ready to start using the platform!"
+    },
+    {
+      "url": "/posts/advanced-tips",
+      "title": "Advanced Tips and Tricks",
+      "abstract": "Power user tips for getting the most out of the platform.",
+      "date": "2025-01-15",
+      "topics": ["advanced", "tips", "productivity"],
+      "body": "# Advanced Tips\n\nOnce you've mastered the basics, try these advanced techniques.\n\n## Keyboard Shortcuts\n\n- `Ctrl+S` - Save\n- `Ctrl+K` - Quick search\n- `Ctrl+/` - Toggle comments\n\n## Automation\n\nSet up automated workflows to save time.\n\n## Integrations\n\nConnect with your favorite tools for a seamless experience."
+    }
+  ]
+}

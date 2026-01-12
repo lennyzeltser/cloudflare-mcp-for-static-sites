@@ -1,0 +1,51 @@
+{
+	// =============================================================================
+	// CLOUDFLARE MCP SERVER FOR STATIC SITES - Configuration
+	// =============================================================================
+	//
+	// Customize the values below for your deployment:
+	//
+	// 1. "name" - Your worker name (appears in Cloudflare dashboard)
+	// 2. "routes.pattern" - Your custom domain (or use workers_dev: true)
+	// 3. "r2_buckets.bucket_name" - Your R2 bucket name
+	//
+	// Optional: Add "account_id" if you have multiple Cloudflare accounts
+	//
+	// =============================================================================
+
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "my-site-mcp-server",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-03-10",
+	"observability": { "enabled": true },
+
+	// Custom domain configuration
+	// Option A: Use a custom domain (recommended for production)
+	"routes": [
+		{ "pattern": "mcp.example.com", "custom_domain": true }
+	],
+	"workers_dev": false,
+
+	// Option B: Use workers.dev subdomain (for testing)
+	// Comment out the "routes" above and set this to true:
+	// "workers_dev": true,
+
+	// Durable Objects for MCP transport
+	"durable_objects": {
+		"bindings": [
+			{ "name": "MCP_OBJECT", "class_name": "SiteMCP" }
+		]
+	},
+	"migrations": [
+		{ "new_sqlite_classes": ["SiteMCP"], "tag": "v1" }
+	],
+
+	// R2 bucket for storing the search index
+	// Create with: npx wrangler r2 bucket create my-site-mcp-data
+	"r2_buckets": [
+		{
+			"binding": "SEARCH_BUCKET",
+			"bucket_name": "my-site-mcp-data"
+		}
+	]
+}
