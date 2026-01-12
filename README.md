@@ -400,3 +400,35 @@ You need a local copy of the search index:
 mkdir -p .wrangler/state/r2/my-site-mcp-data
 cp search-index.json .wrangler/state/r2/my-site-mcp-data/search-index.json
 ```
+
+---
+
+## Examples
+
+Two sites using this approach:
+
+### REMnux Documentation
+
+MCP server for [REMnux](https://remnux.org), the Linux toolkit for malware analysis.
+
+**Repo:** [github.com/REMnux/remnux-docs-mcp-server](https://github.com/REMnux/remnux-docs-mcp-server)
+
+```bash
+# Claude Code
+claude mcp add remnux-docs --transport sse https://docs-mcp.remnux.org/sse
+```
+
+### Lenny Zeltser's Website
+
+MCP server for [zeltser.com](https://zeltser.com), covering malware analysis, incident response, and security leadership.
+
+```bash
+# Claude Code
+claude mcp add zeltser-search --transport sse https://website-mcp.zeltser.com/sse
+```
+
+---
+
+## Author
+
+**Lenny Zeltser** is a cybersecurity leader who builds security programs, tools, and educational content. He serves as CISO at Axonius, created the REMnux malware analysis toolkit, and authored SANS courses on reverse-engineering malware and cybersecurity writing. He holds an MBA from MIT Sloan and a Computer Science degree from the University of Pennsylvania. More at [zeltser.com](https://zeltser.com).
