@@ -6,7 +6,7 @@ Cloudflare is [well-suited for hosting remote MCP servers](https://blog.cloudfla
 
 ## Why This Matters
 
-AI assistants answer questions based on their training data, which may be outdated or incomplete. They can't search your website unless you give them a way to do so. This MCP server is that bridge.
+AI assistants answer questions based on their training data, which may be outdated or incomplete. They can't search your website unless you give them a way to do so. This MCP server can be an AI-native bridge that allows these tools to get up-to-date information when they need it.
 
 You might use this to:
 
