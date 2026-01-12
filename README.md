@@ -69,6 +69,13 @@ You might use this to:
 
 ## Quick Start
 
+You can follow these steps manually or point an AI coding tool (Claude Code, Cursor, etc.) at this repo and ask it to set things up. Either way, you'll need a Cloudflare account and these details about your site:
+
+- **Site name and domain** (e.g., "My Blog" and "blog.example.com")
+- **Content directory** path to your markdown files
+- **Tool prefix** for MCP tool names (e.g., "myblog" → `search_myblog`)
+- **MCP endpoint domain** (e.g., "mcp.example.com")
+
 ### 1. Clone and Install
 
 ```bash
