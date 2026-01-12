@@ -1,6 +1,8 @@
 # Generic Markdown Adapter
 
-A customizable Node.js script that generates a search index from markdown files with YAML frontmatter.
+This adapter generates a search index from markdown files with YAML frontmatter. It works with any static site that follows this structure.
+
+See the [main README](../../README.md) for deployment instructions.
 
 ## Usage
 
@@ -13,7 +15,7 @@ node generate-index.js \
   --output=search-index.json
 ```
 
-Or with environment variables:
+You can also use environment variables:
 
 ```bash
 SITE_NAME="My Blog" \
@@ -24,18 +26,18 @@ node generate-index.js
 
 ## Options
 
-| Option | Env Variable | Default | Description |
-|--------|--------------|---------|-------------|
-| `--content-dir` | `CONTENT_DIR` | `./content` | Directory containing markdown files |
-| `--output` | `OUTPUT` | `./search-index.json` | Output file path |
-| `--site-name` | `SITE_NAME` | `My Website` | Site name for MCP branding |
+| Option | Environment Variable | Default | Description |
+|--------|---------------------|---------|-------------|
+| `--content-dir` | `CONTENT_DIR` | `./content` | Directory with markdown files |
+| `--output` | `OUTPUT` | `./search-index.json` | Output file |
+| `--site-name` | `SITE_NAME` | `My Website` | Site name |
 | `--site-domain` | `SITE_DOMAIN` | `example.com` | Site domain |
 | `--site-description` | `SITE_DESCRIPTION` | (empty) | Site description |
 | `--tool-prefix` | `TOOL_PREFIX` | `website` | Tool name prefix |
 
-## Frontmatter Fields
+## Frontmatter
 
-The script recognizes these frontmatter fields:
+The script reads these frontmatter fields:
 
 ```yaml
 ---
@@ -43,25 +45,24 @@ title: "Article Title"           # Required
 description: "Summary text"      # Optional (also: summary, abstract)
 date: "2025-01-15"              # Optional
 tags: ["tag1", "tag2"]          # Optional (also: topics, categories)
-draft: true                      # Optional - skips if true
+draft: true                      # Optional — skips if true
 ---
 ```
 
 ## Customization
 
-This script is meant to be customized for your content structure. Common modifications:
+This script is meant to be modified for your site. Common changes:
 
-1. **URL generation** - Edit `pathToUrl()` to match your site's URL structure
-2. **Frontmatter parsing** - Extend `parseFrontmatter()` for custom fields
-3. **Content filtering** - Add logic to `processFile()` to skip certain files
+- **URL generation**: Edit `pathToUrl()` to match how your site structures URLs
+- **Frontmatter parsing**: Extend `parseFrontmatter()` for custom fields
+- **Filtering**: Add logic to `processFile()` to skip certain files
 
-## Example
+## Upload to R2
+
+After generating the index:
 
 ```bash
-# Generate index from Hugo content
-node generate-index.js \
-  --content-dir=../my-hugo-site/content/posts \
-  --site-name="My Tech Blog" \
-  --site-domain="techblog.example.com" \
-  --tool-prefix="techblog"
+npx wrangler r2 object put my-site-mcp-data/search-index.json \
+  --file=./search-index.json \
+  --content-type=application/json
 ```

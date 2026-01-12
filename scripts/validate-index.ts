@@ -8,37 +8,13 @@
  *   bun scripts/validate-index.ts path/to/search-index.json
  */
 
-import { z } from 'zod';
-
-const SiteMetadataSchema = z.object({
-    name: z.string().min(1, 'Site name is required'),
-    domain: z.string().min(1, 'Site domain is required'),
-    description: z.string().optional(),
-    toolPrefix: z.string().regex(/^[a-z][a-z0-9_]*$/, 'Tool prefix must be lowercase alphanumeric with underscores').optional(),
-});
-
-const SearchPageSchema = z.object({
-    url: z.string().startsWith('/', 'URL must start with /'),
-    title: z.string().min(1, 'Title is required'),
-    abstract: z.string().optional().default(''),
-    date: z.string().optional().default(''),
-    topics: z.array(z.string()).optional().default([]),
-    body: z.string().optional(),
-});
-
-const SearchIndexSchema = z.object({
-    version: z.string(),
-    generated: z.string(),
-    site: SiteMetadataSchema,
-    pageCount: z.number().int().nonnegative(),
-    pages: z.array(SearchPageSchema),
-});
+import { SearchIndexSchema } from "../src/types";
 
 async function main() {
-    const args = process.argv.slice(2);
+	const args = process.argv.slice(2);
 
-    if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
-        console.log(`
+	if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
+		console.log(`
 Search Index Validator
 
 Usage:
@@ -47,81 +23,80 @@ Usage:
 Example:
   bun scripts/validate-index.ts search-index.json
 `);
-        process.exit(args.length === 0 ? 1 : 0);
-    }
+		process.exit(args.length === 0 ? 1 : 0);
+	}
 
-    const filePath = args[0];
+	const filePath = args[0];
 
-    try {
-        const file = Bun.file(filePath);
-        if (!await file.exists()) {
-            console.error(`Error: File not found: ${filePath}`);
-            process.exit(1);
-        }
+	try {
+		const file = Bun.file(filePath);
+		if (!(await file.exists())) {
+			console.error(`Error: File not found: ${filePath}`);
+			process.exit(1);
+		}
 
-        const data = await file.json();
-        const result = SearchIndexSchema.safeParse(data);
+		const data = await file.json();
+		const result = SearchIndexSchema.safeParse(data);
 
-        if (!result.success) {
-            console.error('Validation failed:\n');
-            for (const issue of result.error.issues) {
-                console.error(`  ${issue.path.join('.')}: ${issue.message}`);
-            }
-            process.exit(1);
-        }
+		if (!result.success) {
+			console.error("Validation failed:\n");
+			for (const issue of result.error.issues) {
+				console.error(`  ${issue.path.join(".")}: ${issue.message}`);
+			}
+			process.exit(1);
+		}
 
-        const index = result.data;
+		const index = result.data;
 
-        // Additional checks
-        const warnings: string[] = [];
+		// Additional checks
+		const warnings: string[] = [];
 
-        // Check for pages without body content
-        const pagesWithoutBody = index.pages.filter(p => !p.body || p.body.length === 0);
-        if (pagesWithoutBody.length > 0) {
-            warnings.push(`${pagesWithoutBody.length} pages have no body content (search quality may be reduced)`);
-        }
+		// Check for pages without body content
+		const pagesWithoutBody = index.pages.filter((p) => !p.body || p.body.length === 0);
+		if (pagesWithoutBody.length > 0) {
+			warnings.push(`${pagesWithoutBody.length} pages have no body content (search quality may be reduced)`);
+		}
 
-        // Check for duplicate URLs
-        const urls = new Set<string>();
-        const duplicates: string[] = [];
-        for (const page of index.pages) {
-            if (urls.has(page.url)) {
-                duplicates.push(page.url);
-            }
-            urls.add(page.url);
-        }
-        if (duplicates.length > 0) {
-            warnings.push(`Duplicate URLs found: ${duplicates.join(', ')}`);
-        }
+		// Check for duplicate URLs
+		const urls = new Set<string>();
+		const duplicates: string[] = [];
+		for (const page of index.pages) {
+			if (urls.has(page.url)) {
+				duplicates.push(page.url);
+			}
+			urls.add(page.url);
+		}
+		if (duplicates.length > 0) {
+			warnings.push(`Duplicate URLs found: ${duplicates.join(", ")}`);
+		}
 
-        // Check pageCount matches
-        if (index.pageCount !== index.pages.length) {
-            warnings.push(`pageCount (${index.pageCount}) doesn't match actual pages (${index.pages.length})`);
-        }
+		// Check pageCount matches
+		if (index.pageCount !== index.pages.length) {
+			warnings.push(`pageCount (${index.pageCount}) doesn't match actual pages (${index.pages.length})`);
+		}
 
-        // Output
-        console.log('✓ Valid search index\n');
-        console.log(`  Version:     ${index.version}`);
-        console.log(`  Generated:   ${index.generated}`);
-        console.log(`  Site:        ${index.site.name} (${index.site.domain})`);
-        console.log(`  Tool prefix: ${index.site.toolPrefix || '(default: website)'}`);
-        console.log(`  Pages:       ${index.pages.length}`);
+		// Output
+		console.log("✓ Valid search index\n");
+		console.log(`  Version:     ${index.version}`);
+		console.log(`  Generated:   ${index.generated}`);
+		console.log(`  Site:        ${index.site.name} (${index.site.domain})`);
+		console.log(`  Tool prefix: ${index.site.toolPrefix || "(default: website)"}`);
+		console.log(`  Pages:       ${index.pages.length}`);
 
-        if (warnings.length > 0) {
-            console.log('\nWarnings:');
-            for (const warning of warnings) {
-                console.log(`  ⚠ ${warning}`);
-            }
-        }
-
-    } catch (error) {
-        if (error instanceof SyntaxError) {
-            console.error(`Error: Invalid JSON in ${filePath}`);
-        } else {
-            console.error(`Error: ${error}`);
-        }
-        process.exit(1);
-    }
+		if (warnings.length > 0) {
+			console.log("\nWarnings:");
+			for (const warning of warnings) {
+				console.log(`  ⚠ ${warning}`);
+			}
+		}
+	} catch (error) {
+		if (error instanceof SyntaxError) {
+			console.error(`Error: Invalid JSON in ${filePath}`);
+		} else {
+			console.error(`Error: ${error}`);
+		}
+		process.exit(1);
+	}
 }
 
 main();

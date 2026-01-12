@@ -1,6 +1,8 @@
 # Hugo Adapter
 
-A Node.js script that generates a search index from Hugo markdown content. Supports both TOML (`+++`) and YAML (`---`) frontmatter.
+This adapter generates a search index from Hugo content. It handles both TOML (`+++`) and YAML (`---`) frontmatter.
+
+See the [main README](../../README.md) for deployment instructions.
 
 ## Usage
 
@@ -15,8 +17,8 @@ node generate-index.js \
 
 ## Options
 
-| Option | Env Variable | Default | Description |
-|--------|--------------|---------|-------------|
+| Option | Environment Variable | Default | Description |
+|--------|---------------------|---------|-------------|
 | `--content-dir` | `CONTENT_DIR` | `./content` | Hugo content directory |
 | `--output` | `OUTPUT` | `./public/search-index.json` | Output file |
 | `--site-name` | `SITE_NAME` | `My Website` | Site name |
@@ -24,25 +26,24 @@ node generate-index.js \
 | `--site-description` | `SITE_DESCRIPTION` | (empty) | Site description |
 | `--tool-prefix` | `TOOL_PREFIX` | `website` | Tool name prefix |
 
-## Hugo Integration
+## Build Integration
 
-Add to your Hugo build process:
+Run the script after Hugo builds your site:
 
 ```bash
-# In package.json scripts or Makefile
 hugo && node path/to/generate-index.js --content-dir=content
 ```
 
-Or as a post-build hook in `netlify.toml`:
+Or in `netlify.toml`:
 
 ```toml
 [build]
   command = "hugo && node scripts/generate-index.js"
 ```
 
-## Frontmatter Support
+## Frontmatter
 
-### TOML (Hugo default)
+### TOML
 
 ```toml
 +++
@@ -68,12 +69,22 @@ draft: false
 
 ## URL Generation
 
-The script converts Hugo file paths to URLs:
+File paths map to URLs like this:
 
-| File Path | Generated URL |
-|-----------|---------------|
+| File Path | URL |
+|-----------|-----|
 | `content/posts/my-post.md` | `/posts/my-post` |
 | `content/about/_index.md` | `/about` |
 | `content/_index.md` | `/` |
 
-Customize `hugoPathToUrl()` if your site uses a different URL structure.
+Edit `hugoPathToUrl()` if your site uses different URL patterns.
+
+## Upload to R2
+
+After generating the index:
+
+```bash
+npx wrangler r2 object put my-site-mcp-data/search-index.json \
+  --file=./public/search-index.json \
+  --content-type=application/json
+```

@@ -64,17 +64,17 @@ export const SiteMetadataSchema = z.object({
 });
 
 export const SearchPageSchema = z.object({
-	url: z.string().min(1, "URL is required"),
+	url: z.string().startsWith("/", "URL must start with /"),
 	title: z.string().min(1, "Title is required"),
-	abstract: z.string().optional(),
-	date: z.string().optional(),
-	topics: z.array(z.string()).optional(),
+	abstract: z.string().optional().default(""),
+	date: z.string().optional().default(""),
+	topics: z.array(z.string()).optional().default([]),
 	body: z.string().optional(),
 });
 
 export const SearchIndexSchema = z.object({
-	version: z.string().regex(/^\d+\.\d+$/, "Version must be in semver format (e.g., '3.0')"),
-	generated: z.string().datetime({ message: "Generated must be ISO 8601 datetime" }),
+	version: z.string().min(1, "Version is required"),
+	generated: z.string().min(1, "Generated timestamp is required"),
 	site: SiteMetadataSchema,
 	pageCount: z.number().int().nonnegative(),
 	pages: z.array(SearchPageSchema),

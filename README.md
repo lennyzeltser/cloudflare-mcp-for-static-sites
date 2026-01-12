@@ -1,15 +1,69 @@
 # Cloudflare MCP Server for Static Sites
 
-Turn any static website into an MCP-searchable knowledge base. Deploy a Cloudflare Worker that provides [Model Context Protocol](https://modelcontextprotocol.io) search tools for AI assistants like Claude, enabling them to search and retrieve content from your site.
+Make your static website searchable by AI assistants. This project deploys a [Cloudflare Worker](https://developers.cloudflare.com/agents/model-context-protocol/) that implements the [Model Context Protocol](https://modelcontextprotocol.io) (MCP). AI tools like Claude can then search and retrieve your content directly.
 
-## Features
+## Why This Matters
 
-- **Full-text search** with fuzzy matching via [Fuse.js](https://www.fusejs.io/)
-- **Dynamic tool naming** — tools automatically include your site's prefix (e.g., `search_myblog`)
-- **Multiple adapters** — Astro, Hugo, or generic markdown
-- **Fast R2 storage** — search index lives in Cloudflare R2
-- **Zero cold starts** — uses Durable Objects for persistent MCP sessions
-- **Simple deployment** — single `wrangler deploy` command
+AI assistants answer questions based on their training data, which may be outdated or incomplete. They can't search your website unless you give them a way to do so. This MCP server is that bridge.
+
+You might use this to:
+
+- Help users find answers in your documentation
+- Give AI assistants access to your blog's content
+- Enable search across an internal knowledge base
+
+## How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Your Static Site                              │
+│                    (Markdown files with frontmatter)                    │
+└──────────────────────────────┬──────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                             Adapter                                     │
+│         (Astro, Hugo, or Generic — runs at build time)                  │
+│                                                                         │
+│   Scans your content files, extracts metadata from frontmatter,         │
+│   and generates a search-index.json file.                               │
+└──────────────────────────────┬──────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Cloudflare R2                                   │
+│                                                                         │
+│   Stores the search index. Only your Worker can access it.              │
+│   The Worker caches the index in memory for one hour.                   │
+└──────────────────────────────┬──────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       Cloudflare Worker                                 │
+│                                                                         │
+│   Implements the MCP server. Uses Fuse.js for fuzzy search.             │
+│   Durable Objects maintain persistent sessions with MCP clients.        │
+└──────────────────────────────┬──────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          MCP Clients                                    │
+│           (Claude Desktop, Claude Code, Cursor, etc.)                   │
+│                                                                         │
+│   Tools available to the AI:                                            │
+│   • search_<prefix> — Find content by keywords                          │
+│   • get_article     — Retrieve a specific page by URL                   │
+│   • get_index_info  — Get index statistics                              │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## Prerequisites
+
+| Requirement | What It's For |
+|-------------|---------------|
+| [Cloudflare account](https://dash.cloudflare.com/sign-up) | Hosts the Worker and R2 bucket. The free tier is sufficient. |
+| [Node.js 18+](https://nodejs.org/) or [Bun](https://bun.sh/) | Runs the adapter that generates your search index. |
+| [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) | Deploys the Worker and manages R2. Installed via `bun install`. |
 
 ## Quick Start
 
@@ -23,7 +77,7 @@ bun install
 
 ### 2. Configure
 
-Edit `wrangler.jsonc` with your settings:
+Edit `wrangler.jsonc`:
 
 ```jsonc
 {
@@ -45,17 +99,15 @@ npx wrangler r2 bucket create my-site-mcp-data
 
 ### 4. Generate and Upload Index
 
-Choose an adapter for your site (see [Adapters](#adapters) below):
+Pick an adapter for your site (see [Adapters](#adapters)):
 
 ```bash
-# Generic markdown
 node adapters/generic/generate-index.js \
   --content-dir=../my-site/content \
   --site-name="My Site" \
   --site-domain="example.com" \
   --tool-prefix="mysite"
 
-# Upload to R2
 npx wrangler r2 object put my-site-mcp-data/search-index.json \
   --file=./search-index.json \
   --content-type=application/json
@@ -67,131 +119,7 @@ npx wrangler r2 object put my-site-mcp-data/search-index.json \
 bun run deploy
 ```
 
-Your MCP server is now live. Connect an MCP client to start searching.
-
----
-
-## Adapters
-
-Adapters generate the search index from your content. Each outputs a `search-index.json` file in the [v3.0 index format](#index-format).
-
-### Generic (Markdown)
-
-For any site with markdown files and YAML frontmatter.
-
-```bash
-node adapters/generic/generate-index.js \
-  --content-dir=./content \
-  --site-name="My Website" \
-  --site-domain="example.com" \
-  --tool-prefix="mysite" \
-  --output=./search-index.json
-```
-
-See [`adapters/generic/README.md`](adapters/generic/README.md) for full options.
-
-### Astro
-
-Build-time integration for Astro projects.
-
-```javascript
-// astro.config.mjs
-import { searchIndexIntegration } from './src/integrations/search-index.mjs';
-
-export default defineConfig({
-  integrations: [
-    searchIndexIntegration({
-      siteName: 'My Blog',
-      siteDomain: 'blog.example.com',
-      toolPrefix: 'myblog',
-    }),
-  ],
-});
-```
-
-See [`adapters/astro/README.md`](adapters/astro/README.md) for setup instructions.
-
-### Hugo
-
-Node.js script for Hugo sites with TOML or YAML frontmatter.
-
-```bash
-node adapters/hugo/generate-index.js \
-  --content-dir=./content \
-  --site-name="My Hugo Site" \
-  --site-domain="example.com"
-```
-
-See [`adapters/hugo/README.md`](adapters/hugo/README.md) for details.
-
----
-
-## Configuration
-
-### wrangler.jsonc
-
-Key settings to customize:
-
-| Field | Description |
-|-------|-------------|
-| `name` | Worker name (appears in Cloudflare dashboard) |
-| `routes[].pattern` | Your custom domain for the MCP endpoint |
-| `r2_buckets[].bucket_name` | R2 bucket storing your search index |
-
-**Custom domain vs workers.dev:**
-
-```jsonc
-// Option A: Custom domain (recommended)
-"routes": [{ "pattern": "mcp.example.com", "custom_domain": true }],
-"workers_dev": false,
-
-// Option B: workers.dev subdomain (for testing)
-"workers_dev": true,
-// Comment out routes
-```
-
-### Index Format
-
-The search index follows the v3.0 schema:
-
-```json
-{
-  "version": "3.0",
-  "generated": "2025-01-15T12:00:00.000Z",
-  "site": {
-    "name": "My Website",
-    "domain": "example.com",
-    "description": "A site about interesting topics",
-    "toolPrefix": "mysite"
-  },
-  "pageCount": 42,
-  "pages": [
-    {
-      "url": "/about",
-      "title": "About Us",
-      "abstract": "Learn about our team.",
-      "date": "2025-01-01",
-      "topics": ["about", "team"],
-      "body": "Full page content here..."
-    }
-  ]
-}
-```
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `site.name` | Yes | Human-readable site name |
-| `site.domain` | Yes | Domain without protocol |
-| `site.toolPrefix` | No | Tool name prefix (default: `website`) |
-| `pages[].url` | Yes | Path starting with `/` |
-| `pages[].title` | Yes | Page title |
-| `pages[].body` | No | Full content for search (recommended) |
-
-Validate your index:
-
-```bash
-bun scripts/validate-index.ts ./search-index.json
-```
+Your MCP server is now running. Connect an MCP client to start searching.
 
 ---
 
@@ -220,7 +148,7 @@ claude mcp add my-site --transport sse https://mcp.example.com/sse
 
 ### Cursor
 
-Add to Cursor settings (`mcp.json`):
+Add to your Cursor `mcp.json`:
 
 ```json
 {
@@ -232,63 +160,124 @@ Add to Cursor settings (`mcp.json`):
 }
 ```
 
-### Verify Connection
+### Other Clients
 
-Once connected, your MCP client will have access to these tools:
+Use the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) package to connect via the `/sse` endpoint (SSE transport) or `/mcp` endpoint (streamable HTTP).
+
+### Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `search_<prefix>` | Search content by keywords |
-| `get_article` | Get full article by URL path |
-| `get_index_info` | Index statistics |
-
-Example queries:
-- "Search my-site for authentication tutorials"
-- "Get the article at /getting-started"
+| `search_<prefix>` | Search by keywords. Returns titles, URLs, dates, and summaries. |
+| `get_article` | Retrieve full content by URL path (e.g., `/about`). |
+| `get_index_info` | Get page count, generation date, and tool names. |
 
 ---
 
-## Creating Custom Adapters
+## Adapters
 
-Build an adapter for your static site generator by outputting the v3.0 index format.
+An adapter generates the search index from your content. It scans your files, extracts frontmatter metadata, and outputs `search-index.json`.
 
-### Minimum Requirements
+Each adapter handles the specifics of a particular static site generator.
 
-1. **Scan content files** — find markdown, HTML, or other content
-2. **Extract metadata** — title, date, topics from frontmatter
-3. **Extract body text** — full content for search
-4. **Generate URL paths** — map file paths to site URLs
-5. **Output JSON** — write `search-index.json`
+### Generic (Markdown)
 
-### Template
+Works with any site that uses markdown files with YAML frontmatter.
+
+```bash
+node adapters/generic/generate-index.js \
+  --content-dir=./content \
+  --site-name="My Website" \
+  --site-domain="example.com" \
+  --tool-prefix="mysite" \
+  --output=./search-index.json
+```
+
+See [`adapters/generic/README.md`](adapters/generic/README.md).
+
+### Astro
+
+An Astro integration that generates the index at build time.
 
 ```javascript
+// astro.config.mjs
+import { searchIndexIntegration } from './src/integrations/search-index.mjs';
+
+export default defineConfig({
+  integrations: [
+    searchIndexIntegration({
+      siteName: 'My Blog',
+      siteDomain: 'blog.example.com',
+      toolPrefix: 'myblog',
+    }),
+  ],
+});
+```
+
+See [`adapters/astro/README.md`](adapters/astro/README.md).
+
+### Hugo
+
+A Node.js script that handles both TOML and YAML frontmatter.
+
+```bash
+node adapters/hugo/generate-index.js \
+  --content-dir=./content \
+  --site-name="My Hugo Site" \
+  --site-domain="example.com"
+```
+
+See [`adapters/hugo/README.md`](adapters/hugo/README.md).
+
+### Writing Your Own Adapter
+
+If your static site generator isn't listed, you can write an adapter. It just needs to output JSON in the v3.0 format.
+
+Your adapter should:
+
+1. Find your content files (markdown, MDX, HTML, etc.)
+2. Extract metadata from frontmatter (title, date, tags)
+3. Extract body text for search
+4. Map file paths to URLs
+5. Write `search-index.json`
+
+Here's a template:
+
+```javascript
+import { writeFileSync } from 'fs';
+
+const pages = [/* your content processing logic */];
+
 const index = {
   version: "3.0",
   generated: new Date().toISOString(),
   site: {
     name: "My Site",
     domain: "example.com",
-    description: "Site description",
+    description: "Brief description for the MCP tool",
     toolPrefix: "mysite",
   },
   pageCount: pages.length,
   pages: pages.map(page => ({
-    url: page.url,
-    title: page.title,
-    abstract: page.summary || "",
-    date: page.date || "",
-    topics: page.tags || [],
-    body: page.content,
+    url: page.url,           // Required: starts with /
+    title: page.title,       // Required
+    abstract: page.summary,  // Optional
+    date: page.date,         // Optional: YYYY-MM-DD
+    topics: page.tags,       // Optional: array
+    body: page.content,      // Recommended for search quality
   })),
 };
 
 writeFileSync("search-index.json", JSON.stringify(index, null, 2));
 ```
 
-### Upload to R2
+Validate your index:
 
-After generating, upload to your R2 bucket:
+```bash
+bun scripts/validate-index.ts ./search-index.json
+```
+
+Upload to R2:
 
 ```bash
 npx wrangler r2 object put my-site-mcp-data/search-index.json \
@@ -298,25 +287,107 @@ npx wrangler r2 object put my-site-mcp-data/search-index.json \
 
 ---
 
+## Configuration
+
+### wrangler.jsonc
+
+| Field | Description |
+|-------|-------------|
+| `name` | Worker name in Cloudflare dashboard |
+| `routes[].pattern` | Your custom domain |
+| `r2_buckets[].bucket_name` | R2 bucket name |
+
+For testing, you can use a workers.dev subdomain instead of a custom domain:
+
+```jsonc
+"workers_dev": true,
+// Comment out "routes"
+```
+
+### Index Format
+
+The search index follows the v3.0 schema:
+
+```json
+{
+  "version": "3.0",
+  "generated": "2025-01-15T12:00:00.000Z",
+  "site": {
+    "name": "My Website",
+    "domain": "example.com",
+    "description": "A site about interesting topics",
+    "toolPrefix": "mysite"
+  },
+  "pageCount": 42,
+  "pages": [
+    {
+      "url": "/about",
+      "title": "About Us",
+      "abstract": "Learn about our team.",
+      "date": "2025-01-01",
+      "topics": ["about", "team"],
+      "body": "Full page content..."
+    }
+  ]
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `version` | Yes | Schema version ("3.0") |
+| `generated` | Yes | ISO 8601 timestamp |
+| `site.name` | Yes | Site name |
+| `site.domain` | Yes | Domain without protocol |
+| `site.description` | No | Shown in MCP tool description |
+| `site.toolPrefix` | No | Tool name prefix (default: `website`) |
+| `pageCount` | Yes | Number of pages |
+| `pages[].url` | Yes | Path starting with `/` |
+| `pages[].title` | Yes | Page title |
+| `pages[].body` | No | Full text (recommended) |
+
+---
+
 ## Development
 
 ```bash
-# Local development server
-bun run dev
-
-# Type checking
-bun run type-check
-
-# Lint and format
-bun run lint:fix
-bun run format
-
-# Deploy to Cloudflare
-bun run deploy
+bun run dev          # Local development server
+bun run type-check   # TypeScript checking
+bun run lint:fix     # Lint and fix
+bun run format       # Format code
+bun run deploy       # Deploy to Cloudflare
 ```
 
 ---
 
-## License
+## Troubleshooting
 
-MIT
+### "Search index not found in R2 bucket"
+
+1. Check the bucket exists: `npx wrangler r2 bucket list`
+2. Check the file was uploaded: `npx wrangler r2 object list my-site-mcp-data`
+3. Verify the bucket name in `wrangler.jsonc` matches
+
+### MCP client won't connect
+
+1. Use the correct endpoint: `/sse` for SSE, `/mcp` for HTTP
+2. Visit your worker URL in a browser — you should see JSON
+3. Make sure the URL includes `https://`
+
+### Search returns no results
+
+1. Validate your index: `bun scripts/validate-index.ts ./search-index.json`
+2. Check that pages have `body` content
+3. Try broader search terms
+
+### Wrong tool names
+
+Tool names come from `toolPrefix` in your search index. Regenerate and re-upload the index with the correct value.
+
+### Local development
+
+You need a local copy of the search index:
+
+```bash
+mkdir -p .wrangler/state/r2/my-site-mcp-data
+cp search-index.json .wrangler/state/r2/my-site-mcp-data/search-index.json
+```

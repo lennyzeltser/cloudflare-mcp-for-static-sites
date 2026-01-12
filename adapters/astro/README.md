@@ -1,10 +1,18 @@
 # Astro Adapter
 
-An Astro integration that generates a search index at build time from your content collections.
+This adapter generates a search index from your Astro content collections. It runs automatically at build time.
+
+See the [main README](../../README.md) for deployment instructions.
 
 ## Installation
 
-Copy `search-index.mjs` to your Astro project's `src/integrations/` directory.
+1. Install the `glob` dependency:
+
+```bash
+bun add glob
+```
+
+2. Copy `search-index.mjs` to `src/integrations/` in your Astro project.
 
 ## Usage
 
@@ -30,22 +38,22 @@ export default defineConfig({
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `siteName` | `My Website` | Site name for MCP branding |
+| `siteName` | `My Website` | Site name |
 | `siteDomain` | `example.com` | Site domain |
 | `siteDescription` | (empty) | Site description |
 | `toolPrefix` | `website` | Tool name prefix |
-| `contentDir` | `src/content` | Content directory to scan |
-| `outputFile` | `dist/mcp-search-index.json` | Output file path |
-| `excludeSlugs` | `[]` | Array of slugs to exclude |
-| `staticPages` | `[]` | Additional static pages to include |
+| `contentDir` | `src/content` | Content directory |
+| `outputFile` | `dist/mcp-search-index.json` | Output path |
+| `excludeSlugs` | `[]` | Slugs to exclude |
+| `staticPages` | `[]` | Additional pages to include |
 
 ## Static Pages
 
-Include non-collection pages (like /about) using the `staticPages` option:
+To include pages that aren't in content collections (like `/about`):
 
 ```javascript
 searchIndexIntegration({
-  // ... other options
+  // ...
   staticPages: [
     {
       url: '/about',
@@ -59,13 +67,12 @@ searchIndexIntegration({
 
 ## Output
 
-After running `npm run build`, the index will be at `dist/mcp-search-index.json`.
+After `bun run build`, the index is at `dist/mcp-search-index.json`.
 
 Upload to R2:
 
 ```bash
 npx wrangler r2 object put my-site-mcp-data/search-index.json \
   --file=dist/mcp-search-index.json \
-  --content-type=application/json \
-  --remote
+  --content-type=application/json
 ```

@@ -16,13 +16,28 @@ const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 25;
 const R2_INDEX_KEY = "search-index.json";
 
-// Cache for the search index
+// Fuse.js search configuration
+const FUSE_OPTIONS = {
+	keys: [
+		{ name: "title", weight: 0.3 },
+		{ name: "abstract", weight: 0.2 },
+		{ name: "body", weight: 0.35 },
+		{ name: "topics", weight: 0.15 },
+	],
+	threshold: 0.4,
+	includeScore: true,
+	ignoreLocation: true,
+};
+
+// Cache for the search index and Fuse instance
 let cachedIndex: SearchIndex | null = null;
+let cachedFuse: Fuse<SearchPage> | null = null;
 let cacheTimestamp = 0;
 
 /**
  * Fetch and cache the search index from R2 bucket.
  * Supports both v2.x (no site metadata) and v3.x (with site metadata) formats.
+ * Also builds and caches the Fuse.js search instance for efficient repeated searches.
  */
 async function getSearchIndex(bucket: R2Bucket): Promise<SearchIndex> {
 	const now = Date.now();
@@ -50,6 +65,8 @@ async function getSearchIndex(bucket: R2Bucket): Promise<SearchIndex> {
 	}
 
 	cachedIndex = data;
+	// Build Fuse instance once when index is loaded (much more efficient than per-search)
+	cachedFuse = new Fuse(data.pages, FUSE_OPTIONS);
 	cacheTimestamp = now;
 	return cachedIndex;
 }
@@ -57,21 +74,13 @@ async function getSearchIndex(bucket: R2Bucket): Promise<SearchIndex> {
 /**
  * Search the index using Fuse.js for fuzzy matching.
  * Searches across title, abstract, body content, and topics.
+ * Uses cached Fuse instance for efficiency.
  */
-function searchPages(index: SearchIndex, query: string, limit: number): SearchPage[] {
-	const fuse = new Fuse(index.pages, {
-		keys: [
-			{ name: "title", weight: 0.3 },
-			{ name: "abstract", weight: 0.2 },
-			{ name: "body", weight: 0.35 },
-			{ name: "topics", weight: 0.15 },
-		],
-		threshold: 0.4,
-		includeScore: true,
-		ignoreLocation: true,
-	});
-
-	const results = fuse.search(query, { limit });
+function searchPages(query: string, limit: number): SearchPage[] {
+	if (!cachedFuse) {
+		throw new Error("Search index not loaded");
+	}
+	const results = cachedFuse.search(query, { limit });
 	return results.map((r) => r.item);
 }
 
@@ -183,7 +192,7 @@ export class SiteMCP extends McpAgent {
 				try {
 					const currentIndex = await getSearchIndex(bucket);
 					const effectiveLimit = Math.min(limit || DEFAULT_LIMIT, MAX_LIMIT);
-					const results = searchPages(currentIndex, query, effectiveLimit);
+					const results = searchPages(query, effectiveLimit);
 					const formatted = formatResults(results, query, currentIndex.site);
 
 					return {
