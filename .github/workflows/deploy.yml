@@ -1,6 +1,7 @@
 # Deploy MCP Server to Cloudflare Workers
 #
-# This workflow deploys on push to main branch.
+# This workflow is manual-only (workflow_dispatch) to prevent accidental deploys.
+# To enable auto-deploy, add: push: branches: [main]
 # Configure the following secrets in your repository:
 #   - CLOUDFLARE_API_TOKEN: API token with Workers and R2 permissions
 #   - CLOUDFLARE_ACCOUNT_ID: Your Cloudflare account ID
@@ -10,10 +11,7 @@
 name: Deploy
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger only - users can re-enable auto-deploy after customizing
 
 jobs:
   deploy:
