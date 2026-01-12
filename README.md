@@ -4,6 +4,23 @@ Turn your static website into an AI-accessible knowledge base. This project depl
 
 Cloudflare is [well-suited for hosting remote MCP servers](https://blog.cloudflare.com/remote-model-context-protocol-servers-mcp/) — its Workers platform handles the transport layer, and Durable Objects maintain persistent client sessions.
 
+---
+
+- [Why This Matters](#why-this-matters)
+- [How It Works](#how-it-works)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [MCP Client Setup](#mcp-client-setup)
+- [Threat Model](#threat-model)
+- [Adapters](#adapters)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Troubleshooting](#troubleshooting)
+- [Examples](#examples)
+- [Author](#author)
+
+---
+
 ## Why This Matters
 
 AI assistants answer questions based on their training data, which may be outdated or incomplete. They can't search your website unless you give them a way to do so. This MCP server can be an AI-native bridge that allows these tools to get up-to-date information when they need it.
@@ -185,6 +202,39 @@ Use the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) package to conn
 
 ---
 
+## Threat Model
+
+This MCP server is designed for **public content only**. Consider these security characteristics before deploying:
+
+### What's Exposed
+
+| Exposure | Mechanism |
+|----------|-----------|
+| All indexed content | `get_article` retrieves full text by URL path |
+| Content enumeration | `search_*` with broad queries reveals page titles and summaries |
+| Site metadata | `/` endpoint and `get_index_info` reveal page count, domain, and tool names |
+
+### Assumptions
+
+- **Your content is already public.** The indexed pages come from a public website. This server makes them AI-searchable, not newly public.
+- **R2 is not the security boundary.** While the R2 bucket is private, the Worker exposes its contents through MCP tools. Anyone with the endpoint URL can query all indexed content.
+- **No authentication.** The MCP server accepts connections from any client. There's no API key, OAuth, or access control.
+
+### Not Designed For
+
+- Private or internal documentation
+- Content requiring authentication or authorization
+- Partial access control (all-or-nothing visibility)
+
+### Recommendations
+
+If you need access control, consider:
+- Cloudflare Access for authentication at the Worker level
+- A separate private deployment for internal content
+- Excluding sensitive pages from the search index
+
+---
+
 ## Adapters
 
 An adapter generates the search index from your content. It scans your files, extracts frontmatter metadata, and outputs `search-index.json`.
@@ -355,39 +405,6 @@ The search index follows the v3.0 schema:
 | `pages[].url` | Yes | Path starting with `/` |
 | `pages[].title` | Yes | Page title |
 | `pages[].body` | No | Full text (recommended) |
-
----
-
-## Threat Model
-
-This MCP server is designed for **public content only**. Consider these security characteristics before deploying:
-
-### What's Exposed
-
-| Exposure | Mechanism |
-|----------|-----------|
-| All indexed content | `get_article` retrieves full text by URL path |
-| Content enumeration | `search_*` with broad queries reveals page titles and summaries |
-| Site metadata | `/` endpoint and `get_index_info` reveal page count, domain, and tool names |
-
-### Assumptions
-
-- **Your content is already public.** The indexed pages come from a public website. This server makes them AI-searchable, not newly public.
-- **R2 is not the security boundary.** While the R2 bucket is private, the Worker exposes its contents through MCP tools. Anyone with the endpoint URL can query all indexed content.
-- **No authentication.** The MCP server accepts connections from any client. There's no API key, OAuth, or access control.
-
-### Not Designed For
-
-- Private or internal documentation
-- Content requiring authentication or authorization
-- Partial access control (all-or-nothing visibility)
-
-### Recommendations
-
-If you need access control, consider:
-- Cloudflare Access for authentication at the Worker level
-- A separate private deployment for internal content
-- Excluding sensitive pages from the search index
 
 ---
 
