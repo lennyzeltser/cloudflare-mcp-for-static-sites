@@ -1,6 +1,6 @@
 # Cloudflare MCP Server for Static Sites
 
-Make your static website searchable by AI assistants. This project deploys a [Cloudflare Worker](https://developers.cloudflare.com/agents/model-context-protocol/) that implements the [Model Context Protocol](https://modelcontextprotocol.io) (MCP). AI tools like Claude can then search and retrieve your content directly.
+Turn your static website into an AI-accessible knowledge base. This project deploys a [Cloudflare Worker](https://developers.cloudflare.com/agents/model-context-protocol/) that implements the [Model Context Protocol](https://modelcontextprotocol.io) (MCP). AI tools like Claude can then search and retrieve your content directly.
 
 Cloudflare is [well-suited for hosting remote MCP servers](https://blog.cloudflare.com/remote-model-context-protocol-servers-mcp/) — its Workers platform handles the transport layer, and Durable Objects maintain persistent client sessions.
 
