@@ -418,6 +418,8 @@ bun run format       # Format code
 bun run deploy       # Deploy to Cloudflare
 ```
 
+**Note:** This is a template repository. The `bun run deploy` command is for users who clone this template to deploy their own MCP server. To contribute to this template itself, use standard git workflows (`git push`).
+
 ---
 
 ## Troubleshooting
