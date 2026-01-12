@@ -2,6 +2,8 @@
 
 Make your static website searchable by AI assistants. This project deploys a [Cloudflare Worker](https://developers.cloudflare.com/agents/model-context-protocol/) that implements the [Model Context Protocol](https://modelcontextprotocol.io) (MCP). AI tools like Claude can then search and retrieve your content directly.
 
+Cloudflare is [well-suited for hosting remote MCP servers](https://blog.cloudflare.com/remote-model-context-protocol-servers-mcp/) — its Workers platform handles the transport layer, and Durable Objects maintain persistent client sessions.
+
 ## Why This Matters
 
 AI assistants answer questions based on their training data, which may be outdated or incomplete. They can't search your website unless you give them a way to do so. This MCP server is that bridge.
