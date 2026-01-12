@@ -130,6 +130,8 @@ bun run deploy
 
 Your MCP server is now running. Connect an MCP client to start searching.
 
+**CI/CD:** The included GitHub Actions workflow (`.github/workflows/deploy.yml`) is set to manual trigger only. To deploy via GitHub Actions, go to Actions → Deploy → Run workflow. To enable auto-deploy on push, edit the workflow and add `push: branches: [main]` to the triggers.
+
 ---
 
 ## MCP Client Setup
