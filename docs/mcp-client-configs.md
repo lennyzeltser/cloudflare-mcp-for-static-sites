@@ -14,7 +14,7 @@ Claude Desktop supports MCP servers via the configuration file.
   "mcpServers": {
     "my-site": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.example.com/sse"]
+      "args": ["-y", "mcp-remote", "https://mcp.example.com/mcp"]
     }
   }
 }
@@ -29,7 +29,7 @@ Replace `mcp.example.com` with your MCP server domain.
 Add using the CLI:
 
 ```bash
-claude mcp add my-site --transport sse https://mcp.example.com/sse
+claude mcp add my-site --transport http https://mcp.example.com/mcp
 ```
 
 Or edit `~/.claude/settings.local.json` directly:
@@ -38,8 +38,8 @@ Or edit `~/.claude/settings.local.json` directly:
 {
   "mcpServers": {
     "my-site": {
-      "type": "sse",
-      "url": "https://mcp.example.com/sse"
+      "type": "http",
+      "url": "https://mcp.example.com/mcp"
     }
   }
 }
@@ -55,7 +55,7 @@ Add to your Cursor MCP settings file:
 {
   "mcpServers": {
     "my-site": {
-      "url": "https://mcp.example.com/sse"
+      "url": "https://mcp.example.com/mcp"
     }
   }
 }
@@ -69,7 +69,7 @@ Add to your Windsurf MCP configuration:
 {
   "mcpServers": {
     "my-site": {
-      "serverUrl": "https://mcp.example.com/sse"
+      "serverUrl": "https://mcp.example.com/mcp"
     }
   }
 }
@@ -84,11 +84,11 @@ You can connect multiple MCP servers. Each appears as a separate set of tools:
   "mcpServers": {
     "docs": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://docs-mcp.example.com/sse"]
+      "args": ["-y", "mcp-remote", "https://docs-mcp.example.com/mcp"]
     },
     "blog": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://blog-mcp.example.com/sse"]
+      "args": ["-y", "mcp-remote", "https://blog-mcp.example.com/mcp"]
     }
   }
 }
@@ -114,18 +114,18 @@ It should respond with the available tools:
 
 The MCP server supports two transport protocols:
 
-| Endpoint | Protocol | Compatibility |
-|----------|----------|---------------|
-| `/sse` | Server-Sent Events | Claude Desktop, most clients |
-| `/mcp` | Streamable HTTP | Newer MCP clients |
+| Endpoint | Protocol | Recommendation |
+|----------|----------|----------------|
+| `/mcp` | Streamable HTTP | **Recommended** — better reliability with Cloudflare Workers |
+| `/sse` | Server-Sent Events | Legacy — may experience timeout issues |
 
-Most clients should use `/sse`. The `/mcp` endpoint is for clients that specifically support the newer streamable HTTP transport.
+Use `/mcp` for new configurations. The `/sse` endpoint remains available for legacy clients but can experience IoContext timeout issues on Cloudflare Workers.
 
 ## Troubleshooting
 
 ### "MCP server not found" or similar
 
-1. Check the URL is correct and includes `/sse`
+1. Check the URL is correct and includes `/mcp`
 2. Verify the server is deployed: `curl https://mcp.example.com/`
 3. Restart the MCP client after config changes
 

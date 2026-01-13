@@ -181,8 +181,8 @@ npx wrangler r2 object put my-site-mcp-data/search-index.json \
 
 ### MCP client can't connect
 
-1. Verify the `/sse` endpoint responds: `curl https://mcp.example.com/sse`
-2. Check the MCP client is using the full URL including `/sse`
+1. Verify the `/mcp` endpoint responds: `curl https://mcp.example.com/mcp`
+2. Check the MCP client is using the full URL including `/mcp`
 3. Restart the MCP client after config changes
 
 ### Search returns no results

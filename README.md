@@ -162,7 +162,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "my-site": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.example.com/sse"]
+      "args": ["-y", "mcp-remote", "https://mcp.example.com/mcp"]
     }
   }
 }
@@ -171,7 +171,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ### Claude Code
 
 ```bash
-claude mcp add my-site --transport sse https://mcp.example.com/sse
+claude mcp add my-site --transport http https://mcp.example.com/mcp
 ```
 
 ### Cursor
@@ -182,7 +182,7 @@ Add to your Cursor `mcp.json`:
 {
   "mcpServers": {
     "my-site": {
-      "url": "https://mcp.example.com/sse"
+      "url": "https://mcp.example.com/mcp"
     }
   }
 }
@@ -190,7 +190,7 @@ Add to your Cursor `mcp.json`:
 
 ### Other Clients
 
-Use the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) package to connect via the `/sse` endpoint (SSE transport) or `/mcp` endpoint (streamable HTTP).
+Use the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) package to connect via the `/mcp` endpoint (streamable HTTP, recommended) or `/sse` endpoint (SSE transport, legacy).
 
 ### Available Tools
 
@@ -432,7 +432,7 @@ bun run deploy       # Deploy to Cloudflare
 
 ### MCP client won't connect
 
-1. Use the correct endpoint: `/sse` for SSE, `/mcp` for HTTP
+1. Use the `/mcp` endpoint (recommended) or `/sse` for legacy clients
 2. Visit your worker URL in a browser — you should see JSON
 3. Make sure the URL includes `https://`
 
@@ -469,7 +469,7 @@ MCP server for [REMnux](https://remnux.org), the Linux toolkit for malware analy
 
 ```bash
 # Claude Code
-claude mcp add remnux-docs --transport sse https://docs-mcp.remnux.org/sse
+claude mcp add remnux-docs --transport http https://docs-mcp.remnux.org/mcp
 ```
 
 ### Lenny Zeltser's Website
@@ -478,7 +478,7 @@ MCP server for [zeltser.com](https://zeltser.com), covering malware analysis, in
 
 ```bash
 # Claude Code
-claude mcp add zeltser-search --transport sse https://website-mcp.zeltser.com/sse
+claude mcp add zeltser-search --transport http https://website-mcp.zeltser.com/mcp
 ```
 
 ---
