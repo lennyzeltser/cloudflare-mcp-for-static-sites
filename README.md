@@ -485,4 +485,4 @@ claude mcp add zeltser-search --transport http https://website-mcp.zeltser.com/m
 
 ## Author
 
-**Lenny Zeltser** is a cybersecurity leader who builds security programs, tools, and educational content. He serves as CISO at Axonius, created the REMnux malware analysis toolkit, and authored SANS courses on reverse-engineering malware and cybersecurity writing. He holds an MBA from MIT Sloan and a Computer Science degree from the University of Pennsylvania. More at [zeltser.com](https://zeltser.com).
+**[Lenny Zeltser](https://zeltser.com)**: Builder of security products and programs. Teacher of those who run them.
