@@ -171,7 +171,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ### Claude Code
 
 ```bash
-claude mcp add my-site --transport http https://mcp.example.com/mcp --scope global
+claude mcp add my-site --transport http https://mcp.example.com/mcp --scope user
 ```
 
 ### Cursor
@@ -469,7 +469,7 @@ MCP server for [REMnux](https://remnux.org), the Linux toolkit for malware analy
 
 ```bash
 # Claude Code
-claude mcp add remnux-docs --transport http https://docs-mcp.remnux.org/mcp --scope global
+claude mcp add remnux-docs --transport http https://docs-mcp.remnux.org/mcp --scope user
 ```
 
 ### Lenny Zeltser's Website
@@ -478,7 +478,7 @@ MCP server for [zeltser.com](https://zeltser.com), covering malware analysis, in
 
 ```bash
 # Claude Code
-claude mcp add zeltser-search --transport http https://website-mcp.zeltser.com/mcp --scope global
+claude mcp add zeltser-search --transport http https://website-mcp.zeltser.com/mcp --scope user
 ```
 
 ---
