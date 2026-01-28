@@ -483,6 +483,46 @@ claude mcp add zeltser-search --transport http https://website-mcp.zeltser.com/m
 
 ---
 
+## AI Agent Quick Reference
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/index.ts` | Worker entry point: MCP server setup, tool definitions, routing |
+| `src/search.ts` | Fuse.js search logic and index loading from R2 |
+| `wrangler.jsonc` | Cloudflare deployment config (Worker name, R2 binding, routes) |
+| `adapters/` | Index generators for Astro, Hugo, and generic markdown sites |
+| `scripts/validate-index.ts` | Validates search-index.json against the v3.0 schema |
+
+### Architecture
+
+```
+Markdown Files → Adapter (build time) → search-index.json → R2 → Worker (MCP) → AI Client
+```
+
+- Adapters run at build time to generate `search-index.json`
+- The Worker loads the index from R2 with 1-hour in-memory caching
+- Fuse.js provides fuzzy search across titles, abstracts, body text, and topics
+- Durable Objects manage persistent MCP client sessions
+
+### Common Dev Tasks
+
+```bash
+bun run dev          # Local dev server (needs local search-index.json in .wrangler/)
+bun run deploy       # Deploy Worker to Cloudflare
+bun run type-check   # TypeScript checking
+bun scripts/validate-index.ts ./search-index.json  # Validate index
+```
+
+### Security Notes
+
+- No authentication: any client with the endpoint URL can query all indexed content
+- Designed for public content only
+- R2 bucket is private but Worker exposes contents via MCP tools
+
+---
+
 ## Author
 
 **[Lenny Zeltser](https://zeltser.com)**: Builder of security products and programs. Teacher of those who run them.
