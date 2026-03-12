@@ -17,6 +17,7 @@
 	"name": "my-site-mcp-server",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-03-10",
+	"compatibility_flags": ["nodejs_compat"],
 	"observability": { "enabled": true },
 
 	// Custom domain configuration

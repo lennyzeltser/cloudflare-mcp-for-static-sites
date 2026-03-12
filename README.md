@@ -53,7 +53,7 @@ You might use this to:
 │                         Cloudflare R2                                   │
 │                                                                         │
 │   Stores the search index. Only your Worker can access it.              │
-│   The Worker caches the index in memory for one hour.                   │
+│   The Worker caches the index in memory for four hours.                 │
 └──────────────────────────────┬──────────────────────────────────────────┘
                                │
                                ▼
@@ -502,7 +502,7 @@ Markdown Files → Adapter (build time) → search-index.json → R2 → Worker 
 ```
 
 - Adapters run at build time to generate `search-index.json`
-- The Worker loads the index from R2 with 1-hour in-memory caching
+- The Worker loads the index from R2 with 4-hour in-memory caching (uses etag revalidation on expiry)
 - Fuse.js provides fuzzy search across titles, abstracts, body text, and topics
 - Durable Objects manage persistent MCP client sessions
 

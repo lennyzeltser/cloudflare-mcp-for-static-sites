@@ -59,7 +59,10 @@ export const SiteMetadataSchema = z.object({
 	description: z.string().optional(),
 	toolPrefix: z
 		.string()
-		.regex(/^[a-z][a-z0-9_]*$/, "Tool prefix must be lowercase alphanumeric with underscores, starting with a letter")
+		.regex(
+			/^[a-z][a-z0-9_]*$/,
+			"Tool prefix must be lowercase alphanumeric with underscores, starting with a letter",
+		)
 		.optional(),
 });
 

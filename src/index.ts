@@ -11,7 +11,7 @@ interface Env extends Cloudflare.Env {
 }
 
 // Configuration
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 25;
 const R2_INDEX_KEY = "search-index.json";
@@ -33,6 +33,7 @@ const FUSE_OPTIONS = {
 let cachedIndex: SearchIndex | null = null;
 let cachedFuse: Fuse<SearchPage> | null = null;
 let cacheTimestamp = 0;
+let cachedEtag = "";
 
 /**
  * Fetch and cache the search index from R2 bucket.
@@ -45,6 +46,18 @@ async function getSearchIndex(bucket: R2Bucket): Promise<SearchIndex> {
 	// Return cached index if still valid
 	if (cachedIndex && now - cacheTimestamp < CACHE_TTL_MS) {
 		return cachedIndex;
+	}
+
+	// If we have cached content but TTL expired, check etag before full fetch
+	if (cachedIndex && cachedEtag) {
+		const head = await bucket.head(R2_INDEX_KEY);
+		if (head && head.etag === cachedEtag) {
+			// Content unchanged — refresh timestamp without re-downloading
+			cacheTimestamp = now;
+			console.log(`[cache] ${R2_INDEX_KEY}: etag match, using cached content`);
+			return cachedIndex;
+		}
+		console.log(`[cache] ${R2_INDEX_KEY}: content changed, reloading`);
 	}
 
 	// Fetch from R2 bucket
@@ -68,6 +81,7 @@ async function getSearchIndex(bucket: R2Bucket): Promise<SearchIndex> {
 	// Build Fuse instance once when index is loaded (much more efficient than per-search)
 	cachedFuse = new Fuse(data.pages, FUSE_OPTIONS);
 	cacheTimestamp = now;
+	cachedEtag = object.etag;
 	return cachedIndex;
 }
 
@@ -89,14 +103,20 @@ function searchPages(query: string, limit: number): SearchPage[] {
  */
 function findArticle(index: SearchIndex, url: string): SearchPage | undefined {
 	const normalizedUrl = url.startsWith("/") ? url : `/${url}`;
-	const cleanUrl = normalizedUrl.endsWith("/") ? normalizedUrl.slice(0, -1) : normalizedUrl;
+	const cleanUrl = normalizedUrl.endsWith("/")
+		? normalizedUrl.slice(0, -1)
+		: normalizedUrl;
 	return index.pages.find((page) => page.url === cleanUrl);
 }
 
 /**
  * Format search results for MCP response.
  */
-function formatResults(results: SearchPage[], query: string, site: SiteMetadata): string {
+function formatResults(
+	results: SearchPage[],
+	query: string,
+	site: SiteMetadata,
+): string {
 	if (results.length === 0) {
 		return `No articles found matching "${query}".`;
 	}
@@ -113,7 +133,10 @@ function formatResults(results: SearchPage[], query: string, site: SiteMetadata)
 			lines.push(`Topics: ${page.topics.join(", ")}`);
 		}
 		if (page.abstract) {
-			const abstract = page.abstract.length > 200 ? `${page.abstract.substring(0, 200)}...` : page.abstract;
+			const abstract =
+				page.abstract.length > 200
+					? `${page.abstract.substring(0, 200)}...`
+					: page.abstract;
 			lines.push(`Summary: ${abstract}`);
 		}
 		lines.push("");
@@ -126,7 +149,11 @@ function formatResults(results: SearchPage[], query: string, site: SiteMetadata)
  * Format a single article for MCP response.
  */
 function formatArticle(article: SearchPage, site: SiteMetadata): string {
-	const lines = [`# ${article.title}`, "", `**URL:** ${getFullUrl(site, article.url)}`];
+	const lines = [
+		`# ${article.title}`,
+		"",
+		`**URL:** ${getFullUrl(site, article.url)}`,
+	];
 
 	if (article.date) {
 		lines.push(`**Date:** ${article.date}`);
@@ -160,7 +187,11 @@ export class SiteMCP extends McpAgent {
 		const bucket = (this.env as Env).SEARCH_BUCKET;
 
 		// Load index to get site configuration
+		const initStart = Date.now();
 		const index = await getSearchIndex(bucket);
+		console.log(
+			`[init] loaded index (${index.pageCount} pages) in ${Date.now() - initStart}ms`,
+		);
 		const site = index.site;
 		const toolPrefix = getToolPrefix(site);
 
@@ -186,7 +217,9 @@ export class SiteMCP extends McpAgent {
 					.min(1)
 					.max(MAX_LIMIT)
 					.optional()
-					.describe(`Maximum number of results to return (default: ${DEFAULT_LIMIT}, max: ${MAX_LIMIT})`),
+					.describe(
+						`Maximum number of results to return (default: ${DEFAULT_LIMIT}, max: ${MAX_LIMIT})`,
+					),
 			},
 			async ({ query, limit }) => {
 				try {
@@ -199,7 +232,8 @@ export class SiteMCP extends McpAgent {
 						content: [{ type: "text", text: formatted }],
 					};
 				} catch (error) {
-					const message = error instanceof Error ? error.message : "Unknown error occurred";
+					const message =
+						error instanceof Error ? error.message : "Unknown error occurred";
 					return {
 						content: [{ type: "text", text: `Error searching: ${message}` }],
 						isError: true,
@@ -213,7 +247,9 @@ export class SiteMCP extends McpAgent {
 			"get_article",
 			`Get the full content of a specific article from ${site.name} by URL path. Returns the complete article including title, date, topics, summary, and full body text.`,
 			{
-				url: z.string().describe("Article URL path (e.g., '/about', '/article-slug')"),
+				url: z
+					.string()
+					.describe("Article URL path (e.g., '/about', '/article-slug')"),
 			},
 			async ({ url }) => {
 				try {
@@ -228,12 +264,17 @@ export class SiteMCP extends McpAgent {
 					}
 
 					return {
-						content: [{ type: "text", text: formatArticle(article, currentIndex.site) }],
+						content: [
+							{ type: "text", text: formatArticle(article, currentIndex.site) },
+						],
 					};
 				} catch (error) {
-					const message = error instanceof Error ? error.message : "Unknown error occurred";
+					const message =
+						error instanceof Error ? error.message : "Unknown error occurred";
 					return {
-						content: [{ type: "text", text: `Error fetching article: ${message}` }],
+						content: [
+							{ type: "text", text: `Error fetching article: ${message}` },
+						],
 						isError: true,
 					};
 				}
@@ -272,9 +313,12 @@ export class SiteMCP extends McpAgent {
 						content: [{ type: "text", text: info.join("\n") }],
 					};
 				} catch (error) {
-					const message = error instanceof Error ? error.message : "Unknown error occurred";
+					const message =
+						error instanceof Error ? error.message : "Unknown error occurred";
 					return {
-						content: [{ type: "text", text: `Error fetching index info: ${message}` }],
+						content: [
+							{ type: "text", text: `Error fetching index info: ${message}` },
+						],
 						isError: true,
 					};
 				}
@@ -299,8 +343,15 @@ export default {
 
 		// Health check / info endpoint - dynamically reads site config
 		if (url.pathname === "/" || url.pathname === "/health") {
+			const cacheHeaders = {
+				"Content-Type": "application/json",
+				"Cache-Control": "public, max-age=60, s-maxage=300",
+			};
+
 			try {
-				const index = await getSearchIndex(env.SEARCH_BUCKET);
+				// Use cached index if available (no R2 call), otherwise load from R2
+				const index =
+					cachedIndex ?? (await getSearchIndex(env.SEARCH_BUCKET));
 				const site = index.site;
 				const prefix = getToolPrefix(site);
 
@@ -308,6 +359,7 @@ export default {
 					JSON.stringify({
 						name: `${site.name} MCP Search Server`,
 						version: "3.0.0",
+						status: "ready",
 						site: {
 							name: site.name,
 							domain: site.domain,
@@ -319,9 +371,7 @@ export default {
 						},
 						tools: [`search_${prefix}`, "get_article", "get_index_info"],
 					}),
-					{
-						headers: { "Content-Type": "application/json" },
-					},
+					{ headers: cacheHeaders },
 				);
 			} catch {
 				return new Response(
@@ -333,7 +383,7 @@ export default {
 					}),
 					{
 						status: 503,
-						headers: { "Content-Type": "application/json" },
+						headers: cacheHeaders,
 					},
 				);
 			}
