@@ -1,8 +1,10 @@
 # Cloudflare MCP Server for Static Sites
 
-Turn your static website into an AI-accessible knowledge base. This project deploys a [Cloudflare Worker](https://developers.cloudflare.com/agents/model-context-protocol/) that implements the [Model Context Protocol](https://modelcontextprotocol.io) (MCP). AI tools like Claude can then search and retrieve your content directly. You can read more about this approach in [my blog post](https://zeltser.com/publishing-to-ai-assistants).
+Turn your static website into an AI-accessible knowledge base. This [Cloudflare Worker](https://developers.cloudflare.com/agents/model-context-protocol/) serves your content over [MCP](https://modelcontextprotocol.io), so AI tools like Claude can search and retrieve it directly.
 
 Cloudflare is [well-suited for hosting remote MCP servers](https://blog.cloudflare.com/remote-model-context-protocol-servers-mcp/) — its Workers platform handles the transport layer, and Durable Objects maintain persistent client sessions.
+
+To see this approach in action, see my blog post [Publishing Your Content to AI Assistants](https://zeltser.com/publishing-to-ai-assistants).
 
 ---
 
@@ -23,7 +25,9 @@ Cloudflare is [well-suited for hosting remote MCP servers](https://blog.cloudfla
 
 ## Why This Matters
 
-AI assistants answer questions based on their training data, which may be outdated or incomplete. They can't search your website unless you give them a way to do so. This MCP server can be an AI-native bridge that allows these tools to get up-to-date information when they need it.
+AI assistants answer questions based on training data that may be outdated or incomplete. Web search and retrieval augmented generation (RAG) each put obstacles between the AI and your content. Web search depends on the AI choosing to search and hoping the right results come back. RAG can be tricky to deploy, and readers can't easily add it to their AI tools.
+
+An MCP server makes your content a native capability of any AI tool that connects to it. The AI discovers and queries your content automatically, in a fast and token-friendly way.
 
 You might use this to:
 
@@ -120,7 +124,7 @@ Edit `wrangler.jsonc`:
 ### 3. Create R2 Bucket
 
 ```bash
-npx wrangler r2 bucket create my-site-mcp-data
+bunx wrangler r2 bucket create my-site-mcp-data
 ```
 
 ### 4. Generate and Upload Index
@@ -128,13 +132,13 @@ npx wrangler r2 bucket create my-site-mcp-data
 Pick an adapter for your site (see [Adapters](#adapters)):
 
 ```bash
-node adapters/generic/generate-index.js \
+bun adapters/generic/generate-index.js \
   --content-dir=../my-site/content \
   --site-name="My Site" \
   --site-domain="example.com" \
   --tool-prefix="mysite"
 
-npx wrangler r2 object put my-site-mcp-data/search-index.json \
+bunx wrangler r2 object put my-site-mcp-data/search-index.json \
   --file=./search-index.json \
   --content-type=application/json
 ```
@@ -246,7 +250,7 @@ Each adapter handles the specifics of a particular static site generator.
 Works with any site that uses markdown files with YAML frontmatter.
 
 ```bash
-node adapters/generic/generate-index.js \
+bun adapters/generic/generate-index.js \
   --content-dir=./content \
   --site-name="My Website" \
   --site-domain="example.com" \
@@ -282,7 +286,7 @@ See [`adapters/astro/README.md`](adapters/astro/README.md).
 A Node.js script that handles both TOML and YAML frontmatter.
 
 ```bash
-node adapters/hugo/generate-index.js \
+bun adapters/hugo/generate-index.js \
   --content-dir=./content \
   --site-name="My Hugo Site" \
   --site-domain="example.com"
@@ -335,13 +339,13 @@ writeFileSync("search-index.json", JSON.stringify(index, null, 2));
 Validate your index:
 
 ```bash
-bun scripts/validate-index.ts ./search-index.json
+bun run validate ./search-index.json
 ```
 
 Upload to R2:
 
 ```bash
-npx wrangler r2 object put my-site-mcp-data/search-index.json \
+bunx wrangler r2 object put my-site-mcp-data/search-index.json \
   --file=./search-index.json \
   --content-type=application/json
 ```
@@ -426,8 +430,8 @@ bun run deploy       # Deploy to Cloudflare
 
 ### "Search index not found in R2 bucket"
 
-1. Check the bucket exists: `npx wrangler r2 bucket list`
-2. Check the file was uploaded: `npx wrangler r2 object list my-site-mcp-data`
+1. Check the bucket exists: `bunx wrangler r2 bucket list`
+2. Check the file was uploaded: `bunx wrangler r2 object list my-site-mcp-data`
 3. Verify the bucket name in `wrangler.jsonc` matches
 
 ### MCP client won't connect
@@ -438,7 +442,7 @@ bun run deploy       # Deploy to Cloudflare
 
 ### Search returns no results
 
-1. Validate your index: `bun scripts/validate-index.ts ./search-index.json`
+1. Validate your index: `bun run validate ./search-index.json`
 2. Check that pages have `body` content
 3. Try broader search terms
 
@@ -463,7 +467,7 @@ Two sites using this approach:
 
 ### REMnux Documentation
 
-MCP server for [REMnux](https://remnux.org), the Linux toolkit for malware analysis.
+MCP server for [REMnux](https://remnux.org), the Linux toolkit for malware analysis. It gives your AI guidance on the REMnux tools, installation steps, and malware analysis workflows.
 
 **Repo:** [github.com/REMnux/remnux-docs-mcp-server](https://github.com/REMnux/remnux-docs-mcp-server)
 
@@ -474,7 +478,7 @@ claude mcp add remnux-docs --transport http https://docs-mcp.remnux.org/mcp --sc
 
 ### Lenny Zeltser's Website
 
-MCP server for [zeltser.com](https://zeltser.com), covering malware analysis, incident response, and security leadership.
+MCP server for [zeltser.com](https://zeltser.com). It gives your AI guidance on [drafting IR reports](https://zeltser.com/good-ir-reports-with-ai), shaping [cybersecurity product strategy](https://zeltser.com/security-product-strategy-with-ai), and other security leadership topics.
 
 ```bash
 # Claude Code
@@ -489,8 +493,8 @@ claude mcp add zeltser-search --transport http https://website-mcp.zeltser.com/m
 
 | File | Purpose |
 |------|---------|
-| `src/index.ts` | Worker entry point: MCP server setup, tool definitions, routing |
-| `src/search.ts` | Fuse.js search logic and index loading from R2 |
+| `src/index.ts` | Worker entry point: MCP server, tool definitions, Fuse.js search, R2 index cache |
+| `src/types.ts` | Shared TypeScript types for the search index schema |
 | `wrangler.jsonc` | Cloudflare deployment config (Worker name, R2 binding, routes) |
 | `adapters/` | Index generators for Astro, Hugo, and generic markdown sites |
 | `scripts/validate-index.ts` | Validates search-index.json against the v3.0 schema |
@@ -512,7 +516,7 @@ Markdown Files → Adapter (build time) → search-index.json → R2 → Worker 
 bun run dev          # Local dev server (needs local search-index.json in .wrangler/)
 bun run deploy       # Deploy Worker to Cloudflare
 bun run type-check   # TypeScript checking
-bun scripts/validate-index.ts ./search-index.json  # Validate index
+bun run validate ./search-index.json  # Validate index
 ```
 
 ### Security Notes
